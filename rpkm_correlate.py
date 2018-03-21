@@ -110,7 +110,7 @@ def correlateRPKM(pwy_filename, data_filename, output_filename = 'pwy_data.tsv',
 
 	# Output the resulting data to the specified file
 	try:
-		with open(output_filename, 'wb') as output_file:
+		with open(output_filename, 'w') as output_file:
 			output_writer = csv.writer(output_file, delimiter=csv_separator)
 
 			for pair in pathway_sums:
