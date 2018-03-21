@@ -24,20 +24,16 @@ The ```correlateRPKM()``` function also has an optional parameter, ```csv_separa
 ### File Format 
 The input files should be formatted as TSV/CSV files (depending on the separator), with the following requirements:
 - The pathway information file should have at least 4 columns, with a header on the first line: 
-	- ```SAMPLE``` (name of the sample, e.g. ```MaxBin12```)
-	- ```PWY_NAME``` (short-name for the pathway, e.g. ```PWY-7205```)
+	- ```SAMPLE``` (name of the sample, e.g. ```MaxBin27```)
+	- ```PWY_NAME``` (short-name for the pathway, e.g. ```PWY-4416```)
 	- ```PWY_COMMON_NAME``` (common-name for the pathway, e.g. ```CMP phosphorylation```)
-	- ```ORFS``` (list of frame IDs, e.g. ```[O_7_3,O_169_9]```)
+	- ```ORFS``` (list of frame IDs, e.g. ```[O_7_7,O_164_9]```)
 
 
 - The RPKM data file should have two columns, with no header:
 	- The first column should be the ORF ID, formatted as ```[Sample Name]_###_##```
-		- For example, if the sample name is ```MaxBin_12```, and the frame ID is ```O_105_2```, the resulting ID would be ```MaxBin12_105_2```
-	- The second column should be the RPKM data point, formatted as a ```float``` (e.g. ```1.9015```)
-
-Example input files are provided in the ```sample_data``` folder. 
-
-
+		- For example, if the sample name is ```MaxBin_22```, and the frame ID is ```O_145_2```, the resulting ID would be ```MaxBin22_145_2```
+	- The second column should be the RPKM data point, formatted as a ```float``` (e.g. ```1.9415```)
 
 
 ## License
