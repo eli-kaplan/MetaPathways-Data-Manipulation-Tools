@@ -7,21 +7,25 @@ __license__ = "CC0 - No rights reserved. See LICENSE"
 import csv
 import sys
 
-def correlateRPKM(pwy_filename, data_filename, output_filename = 'pwy_data.tsv', csv_separator='\t'):
-	""" correlateRPKM(): Takes pathway information (from pwy_filename) and experimental ORF RPKM measurements (from data_filename) and correlates them,
-						 summing up RPKM measurements for each pathway by matching ORF IDs between pathways and the RPKM data file. This resulting data 
-						 is then output to a file with the specified name (output_filename), which defaults to pwy_data.tsv """ 
 
+def loadPathwayInfoFromFile(filename, csv_separator):
+	""" loadPathwayInfoFromFile(): Loads pathway information from given filename (with given CSV separator character)
+								   Parameters: 
+								   	- filename: name of file to load pathway information from (string)
+								   	- csv_separator: CSV separator character (e.g. '\t')
+
+									Returns: Tuple(String(Sample Name), List(Tuple(Pathway Short Name, Pathway Common Name, List(Pathway ORF IDs))))) """
+
+
+	# List to place loaded pathway info into
 	pathway_info = []
-	pathway_data = []
 
 	# Keep track of the name of the sample (i.e. MaxBin_###) to properly match data
 	sample_name = ""
 
-
 	# Load the pathway information from the specified file
 	try:
-		with open(pwy_filename, 'r') as pwy_file:
+		with open(filename, 'r') as pwy_file:
 			pwy_reader = csv.reader(pwy_file, delimiter=csv_separator)
 
 			headerProcessed = False # Keep track of whether the file header has been processed
@@ -68,12 +72,26 @@ def correlateRPKM(pwy_filename, data_filename, output_filename = 'pwy_data.tsv',
 		print("ERROR: Could not read/parse pathway information file - exiting.")
 		quit()
 
-	print("Loaded sample data for " + sample_name + " from " + pwy_filename)
 
+	# Return the pathway information as a tuple of (Sample Name, list(tuple(Pathway Short Name, Pathway Common Name, list(ORF IDs))
+	return (sample_name, pathway_info)
+
+
+
+
+def loadORFDataFromFile(filename, sample_name, csv_separator):
+	""" loadORFDataFromFile: Loads ORF RPKM data for a set from a given file (with given sample name and csv separator)
+							 Parameters: 
+							 	- filename: string containing ORF data file
+							 	- sample_name: string containing name of sample (e.g. MaxBin_33)
+							 	- csv_separator: string containing CSV separator character (e.g. '\t')
+
+							 Returns: Tuple(Sample Name, List(Tuple(ORF ID, RPKM Reading))) """
+	rpkm_data = []
 
 	# Load the RPKM data from the specified file
 	try:
-		with open(data_filename, 'r') as data_file:
+		with open(filename, 'r') as data_file:
 			data_reader = csv.reader(data_file, delimiter=csv_separator)
 
 			for row in data_reader:
@@ -81,19 +99,31 @@ def correlateRPKM(pwy_filename, data_filename, output_filename = 'pwy_data.tsv',
 				data_value = row[1] 						 		# Capture the data point associated with this frame
 
 				# Store the parsed (ORF ID, Data) tuple
-				pathway_data.append((data_id, data_value))
+				rpkm_data.append((data_id, data_value))
 
 	except: # If an error occurred while loading / parsing the RPKM data file, exit.
 		print("ERROR: Could not read/parse RPKM data file - exiting.")
 		quit()
 
+	# Return a tuple of the sample name and the loaded per-ORF RPKM reading data
+	return (sample_name, rpkm_data)
 
-	print("Loaded RPKM data for " + sample_name + " from " + data_filename)
 
+
+
+def correlatePathwayInfoWithData(sample_name, pathway_info, rpkm_data):
+	""" correlatePathwayInfoWtihData: Correlates pathway info and experimental RPKM readings (summing the RPKM readings for each associated ORF) for one sample.
+									  Parameters:
+									  	- sample_name: name of the sample (string)
+									  	- pathway_info: list of tuples of the following format: (Pathway Short Name, Pathway Common Name, List(ORF IDs as strings))
+									  	- rpkm_data: list of tuples formatted as: (ORF ID as string, RPKM reading as string (of float))
+
+
+									  Returns: Tuple(Sample Name, List(Tuple(Pathway Short Name, Pathway Common Name, RPKM Readings Sum)))"""
 
 	# Correlate the data points in pathway_data with the IDs in pathway_info
 	pathway_sums = []
-	pathway_data_dict = dict(pathway_data) # Convert the list of id/data tuples to a dict to make searching easier
+	pathway_data_dict = dict(rpkm_data) # Convert the list of id/data tuples to a dict to make searching easier
 
 	# Iterate through the pathways and sum up the ORF data points associated with each ID in the ORFS column
 	for pathway in pathway_info:
@@ -106,6 +136,37 @@ def correlateRPKM(pwy_filename, data_filename, output_filename = 'pwy_data.tsv',
 
 		# Store the resulting tuple (PWY_NAME, PWY_COMMON_NAME, sum of referenced data points)
 		pathway_sums.append((pathway[0], pathway[1], pwy_sum))
+
+	# Return a tuple of the sample name and the resulting data
+	return (sample_name, pathway_sums)
+
+
+
+
+def correlateRPKM(pwy_filename, data_filename, output_filename = 'pwy_data.tsv', csv_separator='\t'):
+	""" correlateRPKM(): Takes pathway information (from pwy_filename) and experimental ORF RPKM measurements (from data_filename) and correlates them,
+						 summing up RPKM measurements for each pathway by matching ORF IDs between pathways and the RPKM data file. This resulting data 
+						 is then output to a file with the specified name (output_filename), which defaults to pwy_data.tsv """ 
+
+	
+	# Load the pathway information from the given file
+	pwy_info_file_data = loadPathwayInfoFromFile(pwy_filename, csv_separator)
+	sample_name = pwy_info_file_data[0] # Name of the sample (E.g. MaxBin_33)
+	pathway_info = pwy_info_file_data[1] # List of tuples containing pathway info (short name, common name, list of ORF IDs)
+
+	print("Loaded sample data for " + sample_name + " from " + pwy_filename)
+
+
+	# Load the ORF RPKM data from the given file
+	pwy_orf_file_data = loadORFDataFromFile(data_filename, sample_name, csv_separator)
+	pathway_data = pwy_orf_file_data[1]
+
+	print("Loaded RPKM data for " + sample_name + " from " + data_filename)
+
+
+	# Correlate the pathway information with RPKM data
+	pwy_correlation_data = correlatePathwayInfoWithData(sample_name, pathway_info, pathway_data)
+	pathway_sums = pwy_correlation_data[1] # Tuple(PWY_NAME, PWY_COMMON_NAME, sum of referenced RPKM data points for this sample)
 
 
 	# Output the resulting data to the specified file
@@ -121,6 +182,8 @@ def correlateRPKM(pwy_filename, data_filename, output_filename = 'pwy_data.tsv',
 		quit()
 
 	print("Correlated data for " + sample_name + " output to " + output_filename)
+
+
 
 
 
