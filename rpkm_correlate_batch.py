@@ -81,16 +81,68 @@ def batchCorrelateRPKM(file_dir, output_filename = 'pwy_data_batch.tsv', csv_sep
 			per_pathway_data[pwy_name][2][sample] = pwy_rpkm
 
 		all_samples.append(sample)
-	
 
+
+	# For each pathway, if said pathway is not measured in one of the samples, assign a RPKM sum value of 0.0 for that sample 
 	for pathway, data in per_pathway_data.iteritems():
 		for sample in all_samples:
 			if sample not in data[2]:
 				data[2][sample] = 0.0
 
 
-	for pathway, data in per_pathway_data.iteritems():
-		print(pathway + " : " + str(data[2]))
+	#for pathway, data in per_pathway_data.iteritems():
+	#	print(pathway + " : " + str(data[2]))
+	
+
+	all_samples_dict = {}
+	for sample in all_samples:
+		all_samples_dict[sample] = ""
+
+	all_samples_sorted = []
+	for sample, unused in all_samples_dict.iteritems():
+		all_samples_sorted.append(sample)
+
+	
+	# Generate a header for the output CSV file 
+	output_file_header = ['Name', 'Common Name', 'Average RPKM', 'RPKM Sum']
+	for sample in all_samples_sorted:
+		output_file_header.append(sample)
+
+
+
+
+	# Output the resulting data to the chosen file
+	try:
+		with open(output_filename, 'w') as output_file:
+			output_writer = csv.writer(output_file, delimiter=csv_separator)
+
+			# Write the header to the output file
+			output_writer.writerow(output_file_header)
+
+			# Write out the pathway data
+			for pathway, data in per_pathway_data.iteritems():
+				row = [data[0], data[1]]
+
+				rpkm_sum = sum(data[2].values())
+
+				# TODO: flag to exclude zeroes from RPKM averages
+				rpkm_average = 0
+
+				if rpkm_sum > 0:
+					rpkm_average = rpkm_sum / len(data[2].values())
+
+				row.append(rpkm_average)
+				row.append(rpkm_sum)
+
+				for sample, val in data[2].iteritems():
+					row.append(val)
+
+				output_writer.writerow(row)
+
+	
+	except: # If an error occurred while writing out the results, exit.
+		print("ERORR: File output failed - exiting.")
+		quit()
 
 
 	
