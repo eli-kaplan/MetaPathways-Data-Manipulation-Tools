@@ -126,6 +126,7 @@ def batchCorrelateRPKM(file_dir, output_filename = 'pwy_data_batch.tsv', csv_sep
 				rpkm_sum = sum(data[2].values())
 
 				# TODO: flag to exclude zeroes from RPKM averages
+				# TODO: add "Pathway appears in all samples" marker
 				rpkm_average = 0
 
 				if rpkm_sum > 0:
