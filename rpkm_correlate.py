@@ -1,4 +1,4 @@
-""" rpkm_correlate.py: Script to correlate / combine RPKM data values with pathway information """
+""" rpkm_correlate.py: Library / script to correlate / combine RPKM data values with pathway information """
 
 __author__ = "Eli Kaplan"
 __email__ = "eli.kaplan@alumni.ubc.ca"
@@ -10,9 +10,10 @@ import sys
 
 def loadPathwayInfoFromFile(filename, csv_separator):
 	""" loadPathwayInfoFromFile(): Loads pathway information from given filename (with given CSV separator character)
+
 								   Parameters: 
-								   	- filename: name of file to load pathway information from (string)
-								   	- csv_separator: CSV separator character (e.g. '\t')
+								   - filename: name of file to load pathway information from (string)
+								   - csv_separator: CSV separator character (e.g. '\t')
 
 									Returns: Tuple(String(Sample Name), List(Tuple(Pathway Short Name, Pathway Common Name, List(Pathway ORF IDs))))) """
 
@@ -81,10 +82,11 @@ def loadPathwayInfoFromFile(filename, csv_separator):
 
 def loadORFDataFromFile(filename, sample_name, csv_separator):
 	""" loadORFDataFromFile: Loads ORF RPKM data for a set from a given file (with given sample name and csv separator)
+
 							 Parameters: 
-							 	- filename: string containing ORF data file
-							 	- sample_name: string containing name of sample (e.g. MaxBin_33)
-							 	- csv_separator: string containing CSV separator character (e.g. '\t')
+							 - filename: string containing ORF data file
+							 - sample_name: string containing name of sample (e.g. MaxBin_33)
+							 - csv_separator: string containing CSV separator character (e.g. '\t')
 
 							 Returns: Tuple(Sample Name, List(Tuple(ORF ID, RPKM Reading))) """
 	rpkm_data = []
@@ -113,10 +115,11 @@ def loadORFDataFromFile(filename, sample_name, csv_separator):
 
 def correlatePathwayInfoWithData(sample_name, pathway_info, rpkm_data):
 	""" correlatePathwayInfoWtihData: Correlates pathway info and experimental RPKM readings (summing the RPKM readings for each associated ORF) for one sample.
+
 									  Parameters:
-									  	- sample_name: name of the sample (string)
-									  	- pathway_info: list of tuples of the following format: (Pathway Short Name, Pathway Common Name, List(ORF IDs as strings))
-									  	- rpkm_data: list of tuples formatted as: (ORF ID as string, RPKM reading as string (of float))
+									  - sample_name: name of the sample (string)
+									  - pathway_info: list of tuples of the following format: (Pathway Short Name, Pathway Common Name, List(ORF IDs as strings))
+									  - rpkm_data: list of tuples formatted as: (ORF ID as string, RPKM reading as string (of float))
 
 
 									  Returns: Tuple(Sample Name, List(Tuple(Pathway Short Name, Pathway Common Name, RPKM Readings Sum)))"""
@@ -146,7 +149,15 @@ def correlatePathwayInfoWithData(sample_name, pathway_info, rpkm_data):
 def correlateRPKM(pwy_filename, data_filename, output_filename = 'pwy_data.tsv', csv_separator='\t'):
 	""" correlateRPKM(): Takes pathway information (from pwy_filename) and experimental ORF RPKM measurements (from data_filename) and correlates them,
 						 summing up RPKM measurements for each pathway by matching ORF IDs between pathways and the RPKM data file. This resulting data 
-						 is then output to a file with the specified name (output_filename), which defaults to pwy_data.tsv """ 
+						 is then output to a file with the specified name (output_filename), which defaults to pwy_data.tsv 
+
+						 Parameters:
+						 - pwy_filename: filename of the pathway information file for the sample being analyzed
+						 - data_filename: filename of the file containing the RPKM data for each ORF ID
+						 - output_filename: file for the results to be stored in
+						 - csv_separator: separator in use in the CSV files (e.g. '\t') 
+
+						 Returns: nothing - outputs results to specified file.""" 
 
 	
 	# Load the pathway information from the given file
@@ -182,7 +193,6 @@ def correlateRPKM(pwy_filename, data_filename, output_filename = 'pwy_data.tsv',
 		quit()
 
 	print("Correlated data for " + sample_name + " output to " + output_filename)
-
 
 
 
