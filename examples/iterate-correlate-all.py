@@ -1,7 +1,6 @@
 """ iterate-correlate-all.py: Example usage of the rpkm_correlate library - iterates through all PWY/ORF files in two directories and correlates them, putting
 							  the output in a third directory. 
 
-
 							  Requirements:
 							  - rpkm_correlate.py in the current working directory 
 							  - data/ folder in the current working directory
@@ -29,7 +28,7 @@ pwy_files = [join('data/pwy/', f) for f in listdir('data/pwy/')]
 # Iterate through and correlate all of the relevant files
 for file in pwy_files:
 	# Generate the name of the ORF data file that corresponds to the input PWY file
-	orf_name = file.replace('maxbin', 'MaxBin').replace('.pwy.txt', '.orf_rpkm.txt').replace('data/pwy/','data/orf/')
+	orf_name = file.replace('.pwy.txt', '.orf_rpkm.txt').replace('data/pwy/','data/orf/')
 
 	# Generate a fitting name for the output file
 	out_name = file.replace('data/pwy/', 'data/out/').replace('.pwy.txt','_out.txt')
