@@ -107,24 +107,11 @@ def batchCorrelateRPKM(file_dir, output_filename = 'pwy_data_batch.tsv', csv_sep
 			if sample not in data[2]:
 				data[2][sample] = 0.0
 
-
-	# Sort the list of all samples encountered the same way they are sorted in the dict of {'Sample' : 'RPKM Sum'} associated with each pathway, to 
-	# allow for them to be used as column headers at the start of the file.
-	# This is done by creating a dict of the sample names, then populating a list using a for-each as to order the list in the order the names are stored in the dict.
-	all_samples_dict = {}
-	for sample in all_samples:
-		all_samples_dict[sample] = ""
-
-	all_samples_sorted = []
-	for sample, unused in all_samples_dict.items():
-		all_samples_sorted.append(sample)
-
 	
 	# Generate a header for the output tabulated file 
 	output_file_header = ['Name', 'Common Name', 'Average RPKM', 'RPKM Sum', 'In All Samples?']
-	for sample in all_samples_sorted:
+	for sample in sorted(all_samples):
 		output_file_header.append(sample)
-
 
 
 	# Keep track of the per-sample RPKM sums and numbers of non-zero values as {'Sample Name' : #}
@@ -185,7 +172,7 @@ def batchCorrelateRPKM(file_dir, output_filename = 'pwy_data_batch.tsv', csv_sep
 				row.append(str(in_all_samples))
 
 				# Iterate over all of the {'Sample' : 'RPKM Sum'} data for this pathway
-				for sample, val in data[2].items():
+				for sample, val in sorted(data[2].items()):
 
 					# Add the reading for this pathway in each sample to the dict of per-sample total RPKM sums
 					if sample in sample_col_sums.keys():
