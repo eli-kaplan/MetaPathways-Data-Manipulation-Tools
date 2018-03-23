@@ -12,7 +12,7 @@ from os.path import join
 
 from rpkm_correlate import loadPathwayInfoFromFile, loadORFDataFromFile, correlatePathwayInfoWithData
 
-def batchCorrelateRPKM(file_dir, output_filename = 'pwy_data_batch.tsv', csv_separator='\t', pwy_file_suffix='.pwy.txt', data_file_suffix='.orf_rpkm.txt', excl_zeroes=False):
+def batchCorrelateRPKM(file_dir, output_filename = 'pwy_data_batch.tsv', csv_separator='\t', pwy_file_suffix='.pwy.txt', data_file_suffix='.orf_rpkm.txt', excl_zeroes=False, stats_file_suffix='_stats', separate_stats = True):
 	""" batchCorrelateRPKM(): Takes a directory with two sets of files (one set of files containing pathway information and assocated ORF RPKM data IDs, and the
 							  other containing ORF IDs and associated data points), sums the RPKM data for each pathway within a sample, and combines all of the sample results
 							  into a single file.
@@ -102,7 +102,7 @@ def batchCorrelateRPKM(file_dir, output_filename = 'pwy_data_batch.tsv', csv_sep
 
 
 	# For each pathway, if said pathway is not measured in one of the samples, assign a RPKM sum value of 0.0 for that sample 
-	for pathway, data in per_pathway_data.iteritems():
+	for pathway, data in per_pathway_data.items():
 		for sample in all_samples:
 			if sample not in data[2]:
 				data[2][sample] = 0.0
@@ -116,7 +116,7 @@ def batchCorrelateRPKM(file_dir, output_filename = 'pwy_data_batch.tsv', csv_sep
 		all_samples_dict[sample] = ""
 
 	all_samples_sorted = []
-	for sample, unused in all_samples_dict.iteritems():
+	for sample, unused in all_samples_dict.items():
 		all_samples_sorted.append(sample)
 
 	
@@ -126,6 +126,11 @@ def batchCorrelateRPKM(file_dir, output_filename = 'pwy_data_batch.tsv', csv_sep
 		output_file_header.append(sample)
 
 
+
+	# Keep track of the per-sample RPKM sums and numbers of non-zero values as {'Sample Name' : #}
+	sample_col_sums = {}
+	sample_col_nonzero_values = {}
+
 	# Output the resulting data to the chosen file
 	try:
 		with open(output_filename, 'w') as output_file:
@@ -134,12 +139,9 @@ def batchCorrelateRPKM(file_dir, output_filename = 'pwy_data_batch.tsv', csv_sep
 			# Write the header to the output file as the first line.
 			output_writer.writerow(output_file_header)
 
-			# Keep track of the per-sample-column sums and numbers of non-zero values as {'Sample Name' : #}
-			sample_col_sums = {}
-			sample_col_nonzero_values = {}
 
 			# Write out the data for each pathway
-			for pathway, data in per_pathway_data.iteritems():
+			for pathway, data in per_pathway_data.items():
 				# Add the pathway short-name and common-name to the current row to be written
 				row = [data[0], data[1]]
 
@@ -174,7 +176,7 @@ def batchCorrelateRPKM(file_dir, output_filename = 'pwy_data_batch.tsv', csv_sep
 
 				# Determine if the pathway is present in all loaded samples
 				in_all_samples = True
-				for sample, val in data[2].iteritems():
+				for sample, val in data[2].items():
 					if val == 0.0:
 						in_all_samples = False
 						break
@@ -183,7 +185,7 @@ def batchCorrelateRPKM(file_dir, output_filename = 'pwy_data_batch.tsv', csv_sep
 				row.append(str(in_all_samples))
 
 				# Iterate over all of the {'Sample' : 'RPKM Sum'} data for this pathway
-				for sample, val in data[2].iteritems():
+				for sample, val in data[2].items():
 
 					# Add the reading for this pathway in each sample to the dict of per-sample total RPKM sums
 					if sample in sample_col_sums.keys():
@@ -206,35 +208,62 @@ def batchCorrelateRPKM(file_dir, output_filename = 'pwy_data_batch.tsv', csv_sep
 				output_writer.writerow(row)
 
 
-			# Add a row for the total per-sample RPKM sums to the bottom of the file
-			sums_row = ['SAMPLE-SUMS', 'Per-Sample RPKM Sum', '--', '--', '--']	
+			# If per-sample stats are not specified to be separated, place them in the bottom of the output file
+			if separate_stats == False:
+				# Add a row for the total per-sample RPKM sums to the bottom of the file
+				sums_row = ['SAMPLE-SUMS', 'Per-Sample RPKM Sum', '--', '--', '--']	
 
-			for sample, total_sum in sample_col_sums.iteritems():
-				sums_row.append(total_sum)
+				for sample, total_sum in sample_col_sums.items():
+					sums_row.append(total_sum)
 
-			output_writer.writerow(sums_row)
+				output_writer.writerow(sums_row)
 
 
-			# Add a row for the total per-sample RPKM averages to the bottom of the file 
-			averages_row = ['SAMPLE-AVGS', 'Per-Sample RPKM Average', '--', '--', '--']
+				# Add a row for the total per-sample RPKM averages to the bottom of the file 
+				averages_row = ['SAMPLE-AVGS', 'Per-Sample RPKM Average', '--', '--', '--']
 
-			total_num_pathways = len(per_pathway_data.keys())
+				total_num_pathways = len(per_pathway_data.keys())
 
-			# If zeroes are excluded, calculate this average as (per-sample RPKM sum) / (per-sample number of unique pathways observed with non-zero RPKM)
-			if excl_zeroes == True:
-				for sample, total_sum in sample_col_sums.iteritems():
-					averages_row.append(total_sum / sample_col_nonzero_values[sample])
+				# If zeroes are excluded, calculate this average as (per-sample RPKM sum) / (per-sample number of unique pathways observed with non-zero RPKM)
+				if excl_zeroes == True:
+					for sample, total_sum in sample_col_sums.items():
+						averages_row.append(total_sum / sample_col_nonzero_values[sample])
 
-			# Otherwise, calculate as (per-sample RPKM sum) / (total number of pathways loaded from all files)
-			else:
-				for sample, total_sum in sample_col_sums.iteritems():
-					averages_row.append(total_sum / total_num_pathways)
+				# Otherwise, calculate as (per-sample RPKM sum) / (total number of pathways loaded from all files)
+				else:
+					for sample, total_sum in sample_col_sums.items():
+						averages_row.append(total_sum / total_num_pathways)
 
-			output_writer.writerow(averages_row)
+				output_writer.writerow(averages_row)
+
+
+		# If the per-sample stats are supposed to be separated, create a new file for them and output them there.
+		if separate_stats == True:
+			with open(output_filename + stats_file_suffix, 'w') as output_stats_file:
+				stats_writer = csv.writer(output_stats_file, delimiter=csv_separator)
+
+				# Write out the header for this file
+				stats_header = ['Sample', 'Total Sample RPKM Sum', 'Average Per-Pathway RPKM']
+				stats_writer.writerow(stats_header)
+
+				# Write out a statistics row for each sample
+				for sample, total_sum in sample_col_sums.items():
+					cur_row = [sample, total_sum]
+
+					if excl_zeroes == True:
+						cur_row.append(total_sum / sample_col_nonzero_values[sample])
+
+					else:
+						total_num_pathways = len(per_pathway_data.keys())
+						cur_row.append(total_sum / total_num_pathways)
+
+					stats_writer.writerow(cur_row)
+
 
 	
-	except: # If an error occurred while writing out the results, exit.
+	except Exception as e: # If an error occurred while writing out the results, exit.
 		print("ERORR: File output failed - exiting.")
+		print("Exception: " + str(e))
 		quit()
 
 
@@ -250,7 +279,7 @@ if __name__ == "__main__":
 		"""Prints usage information for this script."""
 		print('\nPathway/RPKM Batch Data Correlator')
 		print('Usage: ')
-		print('rpkm_correlate_batch.py <pathway info / RPKM data files folder> [output file] [--exclude-zeroes]')
+		print('rpkm_correlate_batch.py <pathway info / RPKM data files folder> [output file] [--exclude-zeroes] [--separate-stats]')
 		print('\nIf no output file is specified, defaults to pwy_data_batch.tsv\n')
 		print('The --exclude-zeroes flag excludes zero-values from all average calculations.')
 		print('The --help flag shows this information.')
@@ -261,12 +290,21 @@ if __name__ == "__main__":
 
 	args = list(sys.argv)
 	exclude_zeroes = False
+	sep_stats = False
 
 	# If --exclude-zeroes is specified, enable that flag in batchCorrelateRPKM()
 	if '--exclude-zeroes' in args:
 		exclude_zeroes = True
 		args.remove('--exclude-zeroes')
 		print('Excluding zero-values from average calculation.')
+
+
+	# If --separate-stats is specified, output per-sample stats to another file
+	if '--separate-stats' in args:
+		sep_stats = True
+		args.remove('--separate-stats')
+		print('Will output per-sample stats to a separate file.')
+
 
 	# If --help is specified, print usage information and exit.
 	if '--help' in args:
@@ -288,4 +326,4 @@ if __name__ == "__main__":
 		quit()
 
 
-	batchCorrelateRPKM(target_folder, output_filename, excl_zeroes=exclude_zeroes)
+	batchCorrelateRPKM(target_folder, output_filename, excl_zeroes=exclude_zeroes, separate_stats=sep_stats)
