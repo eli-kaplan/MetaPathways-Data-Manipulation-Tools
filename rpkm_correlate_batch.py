@@ -27,8 +27,10 @@ def batchCorrelateRPKM(file_dir, output_filename = 'pwy_data_batch.tsv', csv_sep
 
 							  Returns: nothing - outputs results to specified file"""
 
+	# Create a list of all files in the target directory
 	all_files = [join(file_dir, f) for f in listdir(file_dir)]
 
+	# Split the list of all the files into two lists: a list of pathway information files, and a list of RPKM data files
 	pwy_files = []
 	data_files = []
 
@@ -41,46 +43,61 @@ def batchCorrelateRPKM(file_dir, output_filename = 'pwy_data_batch.tsv', csv_sep
 			print("Unknown file in batch directory: " + file)
 
 
+	# Match each pathway information file with its corresponding RPKM data file (assuming they have the same sample name)
 	file_pairs = []
 
 	for pwy_file in pwy_files:
+		# Generate the name of the corresponding data file based on the name of the pathway info file
 		corresponding_data_file = pwy_file.replace(pwy_file_suffix, data_file_suffix)
 	
+		# If this file exists, pair it with the pathway file
 		if corresponding_data_file in data_files:
 			file_pairs.append((pwy_file, corresponding_data_file))
 
+		# Otherwise, print a warning and don't add the anything to the list of pairs of files to work with.
 		else:
 			print("Missing ORF data file: " + corresponding_data_file)
 
 
+	# Load/parse each pathway information file and corresponding data file, then correlate each pathway with its respective data points
 	all_files_data = []
 
 	for (pathway_file, data_file) in file_pairs:
+		# Load pathway information from the given file
 		pathway_info = loadPathwayInfoFromFile(pathway_file, csv_separator)
 		cur_sample = pathway_info[0]
+
+		# Load RPKM data from the file corresponding to the pathway info file
 		rpkm_data = loadORFDataFromFile(data_file, cur_sample, csv_separator)
 
+		# Correlate the data from the two files
 		corr_pwy_data = correlatePathwayInfoWithData(cur_sample, pathway_info[1], rpkm_data[1])
 
+		# Store this correlated data (tuple of (Sample Name, Data)) in all_files_data
 		all_files_data.append(corr_pwy_data)
 
 		print("Loaded data for sample: " + cur_sample)				
 
 
+	# Create a dict containing all of this previously loaded data, keyed by pathway short-name (such as to allow per-sample data to be accessed for each pathway)
 	per_pathway_data = dict()
-	all_samples = []
+	all_samples = [] # Keep track of all of the samples encountered
 
+	# Add each pathway from each sample to per_pathway_data
 	for (sample, pathways) in all_files_data:
 		for pwy in pathways:
 			pwy_name = pwy[0] # Short name for this pathway
 			pwy_cname = pwy[1] # Common name for this pathway
-			pwy_rpkm = pwy[2] # Sum of rpkm readings for this pathway for this sample
+			pwy_rpkm = pwy[2] # Sum of RPKM readings for this pathway for this sample
 
+			# If the pathway is not in the dict yet, add it.
 			if pwy_name not in per_pathway_data:
-				per_pathway_data[pwy_name] = [pwy_name, pwy_cname, dict()]
+				per_pathway_data[pwy_name] = [pwy_name, pwy_cname, dict()] # the dict() field will contain {'Sample Name' : 'RPKM Sum'} data for each pathway
 			
+			# Append the data for this current sample to the data for this pathway
 			per_pathway_data[pwy_name][2][sample] = pwy_rpkm
 
+		# Add this sample to the list of samples encountered
 		all_samples.append(sample)
 
 
@@ -91,7 +108,9 @@ def batchCorrelateRPKM(file_dir, output_filename = 'pwy_data_batch.tsv', csv_sep
 				data[2][sample] = 0.0
 
 
-
+	# Sort the list of all samples encountered the same way they are sorted in the dict of {'Sample' : 'RPKM Sum'} associated with each pathway, to 
+	# allow for them to be used as column headers at the start of the file.
+	# This is done by creating a dict of the sample names, then populating a list using a for-each as to order the list in the order the names are stored in the dict.
 	all_samples_dict = {}
 	for sample in all_samples:
 		all_samples_dict[sample] = ""
@@ -101,7 +120,7 @@ def batchCorrelateRPKM(file_dir, output_filename = 'pwy_data_batch.tsv', csv_sep
 		all_samples_sorted.append(sample)
 
 	
-	# Generate a header for the output CSV file 
+	# Generate a header for the output tabulated file 
 	output_file_header = ['Name', 'Common Name', 'Average RPKM', 'RPKM Sum', 'In All Samples?']
 	for sample in all_samples_sorted:
 		output_file_header.append(sample)
@@ -112,50 +131,67 @@ def batchCorrelateRPKM(file_dir, output_filename = 'pwy_data_batch.tsv', csv_sep
 		with open(output_filename, 'w') as output_file:
 			output_writer = csv.writer(output_file, delimiter=csv_separator)
 
-			# Write the header to the output file
+			# Write the header to the output file as the first line.
 			output_writer.writerow(output_file_header)
 
+			# Keep track of the per-sample-column sums and numbers of non-zero values as {'Sample Name' : #}
 			sample_col_sums = {}
 			sample_col_nonzero_values = {}
 
-			# Write out the pathway data
+			# Write out the data for each pathway
 			for pathway, data in per_pathway_data.iteritems():
+				# Add the pathway short-name and common-name to the current row to be written
 				row = [data[0], data[1]]
 
+				# Calculate the per-pathway RPKM value sum across all of the samples
 				rpkm_sum = sum(data[2].values())
 
+
+				# Calculate the per-pathway RPKM value average
 				rpkm_average = 0
 
+				# Only perform this calculation for pathways that have been measured in at least one sample
 				if rpkm_sum > 0.0:
+
+					# If zero-values are to be excluded, calculate the number of samples this pathway was measured in
 					if excl_zeroes == True:
 						num_nonzero_samples = 0
 						for sample_reading in data[2].values():
 							if sample_reading != 0.0:
 								num_nonzero_samples += 1
 						
+						# Calculate the average as (sum) / (number of samples where this pathway has been identified)
 						if num_nonzero_samples != 0:
 							rpkm_average = rpkm_sum / num_nonzero_samples
+
+					# Otherwise, just use the total number of samples to calculate the average
 					else:
 						rpkm_average = rpkm_sum / len(data[2].values())
 
+				# Append the per-pathway RPKM average and sum to the row
 				row.append(rpkm_average)
 				row.append(rpkm_sum)
 
+				# Determine if the pathway is present in all loaded samples
 				in_all_samples = True
 				for sample, val in data[2].iteritems():
 					if val == 0.0:
 						in_all_samples = False
 						break
 
+				# Append this to the current row to be written 
 				row.append(str(in_all_samples))
 
-
+				# Iterate over all of the {'Sample' : 'RPKM Sum'} data for this pathway
 				for sample, val in data[2].iteritems():
+
+					# Add the reading for this pathway in each sample to the dict of per-sample total RPKM sums
 					if sample in sample_col_sums.keys():
 						sample_col_sums[sample] += val
 					else:
 						sample_col_sums[sample] = val
 
+					# If the reading for this pathway is non-zero, add it to the dict of per-sample number of non-zero-RPKM pathways (i.e. unique pathways found in each sample)
 					if val != 0.0:
 						if sample in sample_col_nonzero_values.keys():
 							sample_col_nonzero_values[sample] += 1
@@ -163,11 +199,14 @@ def batchCorrelateRPKM(file_dir, output_filename = 'pwy_data_batch.tsv', csv_sep
 							sample_col_nonzero_values[sample] = 1
 
 
+					# Append the RPKM reading for this pathway in this sample to the row to be written out 
 					row.append(val)
 
+				# Write the current row to the output file
 				output_writer.writerow(row)
 
 
+			# Add a row for the total per-sample RPKM sums to the bottom of the file
 			sums_row = ['SAMPLE-SUMS', 'Per-Sample RPKM Sum', '--', '--', '--']	
 
 			for sample, total_sum in sample_col_sums.iteritems():
@@ -176,14 +215,17 @@ def batchCorrelateRPKM(file_dir, output_filename = 'pwy_data_batch.tsv', csv_sep
 			output_writer.writerow(sums_row)
 
 
+			# Add a row for the total per-sample RPKM averages to the bottom of the file 
 			averages_row = ['SAMPLE-AVGS', 'Per-Sample RPKM Average', '--', '--', '--']
 
 			total_num_pathways = len(per_pathway_data.keys())
 
+			# If zeroes are excluded, calculate this average as (per-sample RPKM sum) / (per-sample number of unique pathways observed with non-zero RPKM)
 			if excl_zeroes == True:
 				for sample, total_sum in sample_col_sums.iteritems():
 					averages_row.append(total_sum / sample_col_nonzero_values[sample])
 
+			# Otherwise, calculate as (per-sample RPKM sum) / (total number of pathways loaded from all files)
 			else:
 				for sample, total_sum in sample_col_sums.iteritems():
 					averages_row.append(total_sum / total_num_pathways)
@@ -224,9 +266,11 @@ if __name__ == "__main__":
 	if '--exclude-zeroes' in args:
 		exclude_zeroes = True
 		args.remove('--exclude-zeroes')
+		print('Excluding zero-values from average calculation.')
 
 	# If --help is specified, print usage information and exit.
 	if '--help' in args:
+		print('Printing usage information.')
 		printUsage()
 		quit()
 

@@ -205,9 +205,8 @@ if __name__ == "__main__":
 		print('\nPathway/RPKM Data Correlator')
 		print('Usage: ')
 		print('rpkm_correlate.py <pathway info file> <RPKM data file> [output file]')
-		print('If no output file is specified, defaults to pwy_data.tsv\n')
-		print('See README for further information.')
-
+		print('If no output file is specified, defaults to pwy_data.tsv')
+		print('\nSee README for further information.\n')
 
 	# Acquire input / output filenames from command-line arguments, if they are well-formed
 	info_filename = ""
