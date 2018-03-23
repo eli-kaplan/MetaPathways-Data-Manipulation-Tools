@@ -5,7 +5,7 @@
 							  - rpkm_correlate.py in the current working directory 
 							  - data/ folder in the current working directory
 							  - pwy/ folder within the data folder containing pathway info files named as maxbin_###.pwy.txt
-							  - orf/ folder within the data folder containing ORF RPKM data files named as MaxBin_###.orf_rpkm.txt
+							  - orf/ folder within the data folder containing ORF RPKM data files named as maxbin_###.orf_rpkm.txt
 							  - out/ folder within the data folder
 							  - referenced files are properly formatted (see README.md)
 
