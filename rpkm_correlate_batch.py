@@ -12,7 +12,7 @@ from os.path import join
 
 from rpkm_correlate import loadPathwayInfoFromFile, loadORFDataFromFile, correlatePathwayInfoWithData
 
-def batchCorrelateRPKM(file_dir, output_filename = 'pwy_data_batch.tsv', csv_separator='\t', pwy_file_suffix='.pwy.txt', data_file_suffix='.orf_rpkm.txt'):
+def batchCorrelateRPKM(file_dir, output_filename = 'pwy_data_batch.tsv', csv_separator='\t', pwy_file_suffix='.pwy.txt', data_file_suffix='.orf_rpkm.txt', excl_zeroes=False):
 	""" batchCorrelateRPKM(): Takes a directory with two sets of files (one set of files containing pathway information and assocated ORF RPKM data IDs, and the
 							  other containing ORF IDs and associated data points), sums the RPKM data for each pathway within a sample, and combines all of the sample results
 							  into a single file.
@@ -23,6 +23,7 @@ def batchCorrelateRPKM(file_dir, output_filename = 'pwy_data_batch.tsv', csv_sep
 							  - csv_separator: column separator used in given files
 							  - pwy_file_suffix: suffix for files containing pathway information
 							  - data_file_suffix: suffix for files containing RPKM data 
+							  - excl_zeroes: whether average calculations should exclude zero-values (i.e. pathways not found in specific samples)
 
 							  Returns: nothing - outputs results to specified file"""
 
@@ -90,9 +91,6 @@ def batchCorrelateRPKM(file_dir, output_filename = 'pwy_data_batch.tsv', csv_sep
 				data[2][sample] = 0.0
 
 
-	#for pathway, data in per_pathway_data.iteritems():
-	#	print(pathway + " : " + str(data[2]))
-	
 
 	all_samples_dict = {}
 	for sample in all_samples:
@@ -104,11 +102,9 @@ def batchCorrelateRPKM(file_dir, output_filename = 'pwy_data_batch.tsv', csv_sep
 
 	
 	# Generate a header for the output CSV file 
-	output_file_header = ['Name', 'Common Name', 'Average RPKM', 'RPKM Sum']
+	output_file_header = ['Name', 'Common Name', 'Average RPKM', 'RPKM Sum', 'In All Samples?']
 	for sample in all_samples_sorted:
 		output_file_header.append(sample)
-
-
 
 
 	# Output the resulting data to the chosen file
@@ -119,14 +115,14 @@ def batchCorrelateRPKM(file_dir, output_filename = 'pwy_data_batch.tsv', csv_sep
 			# Write the header to the output file
 			output_writer.writerow(output_file_header)
 
+			sample_col_sums = {}
+
 			# Write out the pathway data
 			for pathway, data in per_pathway_data.iteritems():
 				row = [data[0], data[1]]
 
 				rpkm_sum = sum(data[2].values())
 
-				# TODO: flag to exclude zeroes from RPKM averages
-				# TODO: add "Pathway appears in all samples" marker
 				rpkm_average = 0
 
 				if rpkm_sum > 0:
@@ -135,10 +131,41 @@ def batchCorrelateRPKM(file_dir, output_filename = 'pwy_data_batch.tsv', csv_sep
 				row.append(rpkm_average)
 				row.append(rpkm_sum)
 
+				in_all_samples = True
 				for sample, val in data[2].iteritems():
+					if val == 0.0:
+						in_all_samples = False
+						break
+
+				row.append(str(in_all_samples))
+
+				for sample, val in data[2].iteritems():
+					if sample in sample_col_sums.keys():
+						sample_col_sums[sample] += val
+					else:
+						sample_col_sums[sample] = val
+
 					row.append(val)
 
 				output_writer.writerow(row)
+
+
+			sums_row = ['SAMPLE-SUMS', 'Per-Sample RPKM Sum', '--', '--', '--']	
+
+			for sample, total_sum in sample_col_sums.iteritems():
+				sums_row.append(total_sum)
+
+			output_writer.writerow(sums_row)
+
+
+			averages_row = ['SAMPLE-AVGS', 'Per-Sample RPKM Average', '--', '--', '--']
+
+			total_num_pathways = len(per_pathway_data.keys())
+
+			for sample, total_sum in sample_col_sums.iteritems():
+				averages_row.append(total_sum / total_num_pathways) #TODO: ability to exclude zeroes
+
+			output_writer.writerow(averages_row)
 
 	
 	except: # If an error occurred while writing out the results, exit.
@@ -158,23 +185,40 @@ if __name__ == "__main__":
 		"""Prints usage information for this script."""
 		print('\nPathway/RPKM Batch Data Correlator')
 		print('Usage: ')
-		print('rpkm_correlate_batch.py <pathway info / RPKM data files folder> [output file]')
-		print('If no output file is specified, defaults to pwy_data_batch.tsv\n')
+		print('rpkm_correlate_batch.py <pathway info / RPKM data files folder> [output file] [--exclude-zeroes]')
+		print('\nIf no output file is specified, defaults to pwy_data_batch.tsv\n')
+		print('The --exclude-zeroes flag excludes zero-values from all average calculations. (Not yet implemented)')
+		print('The --help flag shows this information.')
+		print('\nSee README for further information.\n')
 
 
 	target_folder = ""
 
-	if len(sys.argv) == 2: # Output file not specified
-		target_folder = sys.argv[1]
+	args = list(sys.argv)
+	exclude_zeroes = False
+
+	# If --exclude-zeroes is specified, enable that flag in batchCorrelateRPKM()
+	if '--exclude-zeroes' in args:
+		exclude_zeroes = True
+		args.remove('--exclude-zeroes')
+
+	# If --help is specified, print usage information and exit.
+	if '--help' in args:
+		printUsage()
+		quit()
+
+		
+	if len(args) == 2: # Output file not specified
+		target_folder = args[1]
 		output_filename = 'pwy_data_batch.tsv'
 
-	elif len(sys.argv) == 4: # Output file specified
-		target_folder = sys.argv[1]
-		output_filename = sys.argv[2]
+	elif len(args) == 3: # Output file specified
+		target_folder = args[1]
+		output_filename = args[2]
 
 	else: # If command-line arguments are not well-formed, print usage information and exit.
 		printUsage()
 		quit()
 
 
-	batchCorrelateRPKM(target_folder, output_filename)
+	batchCorrelateRPKM(target_folder, output_filename, excl_zeroes=exclude_zeroes)
