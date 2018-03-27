@@ -109,7 +109,7 @@ def batchCorrelateRPKM(file_dir, output_filename = 'pwy_data_batch.tsv', csv_sep
 
 	
 	# Generate a header for the output tabulated file 
-	output_file_header = ['Name', 'Common Name', 'Average RPKM', 'RPKM Sum', 'In All Samples?']
+	output_file_header = ['Name', 'Common Name', 'Average RPKM', 'RPKM Sum', 'In # Samples']
 	for sample in sorted(all_samples):
 		output_file_header.append(sample)
 
@@ -161,15 +161,14 @@ def batchCorrelateRPKM(file_dir, output_filename = 'pwy_data_batch.tsv', csv_sep
 				row.append(rpkm_average)
 				row.append(rpkm_sum)
 
-				# Determine if the pathway is present in all loaded samples
-				in_all_samples = True
+				# Calculate fraction of samples that the pathway appears in
+				in_n_samples = 0
 				for sample, val in data[2].items():
-					if val == 0.0:
-						in_all_samples = False
-						break
+					if val != 0.0:
+						in_n_samples += 1
 
 				# Append this to the current row to be written 
-				row.append(str(in_all_samples))
+				row.append(str(in_n_samples) + '/' + str(len(all_samples)))
 
 				# Iterate over all of the {'Sample' : 'RPKM Sum'} data for this pathway
 				for sample, val in sorted(data[2].items()):
