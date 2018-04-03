@@ -199,7 +199,7 @@ def batchCorrelateRPKM(file_dir, output_filename = 'pwy_data_batch.tsv', csv_sep
 				# Add a row for the total per-sample RPKM sums to the bottom of the file
 				sums_row = ['SAMPLE-SUMS', 'Per-Sample RPKM Sum', '--', '--', '--']	
 
-				for sample, total_sum in sample_col_sums.items():
+				for sample, total_sum in sorted(sample_col_sums.items()):
 					sums_row.append(total_sum)
 
 				output_writer.writerow(sums_row)
@@ -212,12 +212,12 @@ def batchCorrelateRPKM(file_dir, output_filename = 'pwy_data_batch.tsv', csv_sep
 
 				# If zeroes are excluded, calculate this average as (per-sample RPKM sum) / (per-sample number of unique pathways observed with non-zero RPKM)
 				if excl_zeroes == True:
-					for sample, total_sum in sample_col_sums.items():
+					for sample, total_sum in sorted(sample_col_sums.items()):
 						averages_row.append(total_sum / sample_col_nonzero_values[sample])
 
 				# Otherwise, calculate as (per-sample RPKM sum) / (total number of pathways loaded from all files)
 				else:
-					for sample, total_sum in sample_col_sums.items():
+					for sample, total_sum in sorted(sample_col_sums.items()):
 						averages_row.append(total_sum / total_num_pathways)
 
 				output_writer.writerow(averages_row)
