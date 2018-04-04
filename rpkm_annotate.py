@@ -46,7 +46,7 @@ def loadAnnotationsFromFile(filename, sample_name, csv_separator):
 	return anno_data
 
 
-def batchCorrelateAnnotate(file_dir, output_filename = 'pwy_anno.tsv', csv_separator='\t', pwy_file_suffix='.pwy.txt', data_file_suffix='.orf_rpkm.txt', anno_file_suffix='.metacyc-2016-10-31.lastout.parsed.txt'):
+def batchCorrelateAnnotate(file_dir, output_filename = 'pwy_anno.tsv', csv_separator='\t', pwy_file_suffix='.pwy.txt', data_file_suffix='.orf_rpkm.txt', anno_file_suffix='.metacyc-2016-10-31.lastout.parsed.txt', selected_pathways=[]):
 
 	# Create a list of all files in the target directory
 	all_files = [join(file_dir, f) for f in listdir(file_dir)]
@@ -110,6 +110,9 @@ def batchCorrelateAnnotate(file_dir, output_filename = 'pwy_anno.tsv', csv_separ
 		n_missing_rpkm = 0
 
 		for pwy, pwy_cname, pwy_orfs in pathway_info[1]:
+			if len(selected_pathways) > 0 and pwy not in selected_pathways:
+				continue
+
 			n_total_pathways += 1
 			for orf in pwy_orfs:
 				if orf in data_dict:
@@ -141,7 +144,7 @@ def batchCorrelateAnnotate(file_dir, output_filename = 'pwy_anno.tsv', csv_separ
 		print('Loaded sample: ' + cur_sample + ' - ORFS with no annotations: ' + str(n_missing_annotations) + ' - missing rpkm data points: ' + str(n_missing_rpkm))
 				
 
-	print('Processed ' + str(n_total_pathways) + ' pathways, ' + str(n_total_datapoints) + ' RPKM data points, ' + str(n_total_annotations) + ' total annotations.')
+	print('Processed ' + str(n_total_pathways) + ' sample/pathway pairs, ' + str(n_total_datapoints) + ' RPKM data points, ' + str(n_total_annotations) + ' total annotations.')
 
 
 	
@@ -175,12 +178,19 @@ def batchCorrelateAnnotate(file_dir, output_filename = 'pwy_anno.tsv', csv_separ
 
 # Allow the script to be run stand-alone (and prevent the following code from running when imported)
 if __name__ == "__main__":
-
 	def printUsage():
 		"""Prints usage information for this script."""
-		print('\nPathway/RPKM Batch Data Correlator')
+		print('\nPathway/RPKM Batch Pathway/Data/Annotation Correlator')
+		print('Usage: ')
+		print('rpkm_annotate.py <folder containing pathway, data, and annotation files> [output filename] [--select-pathways <file>]')
+		print('--help displays this message.')
+		print('--select-pathways <pathway list file> specifies a file containing a list of pathways to output (ignoring other pathways)\n')
+
 
 	target_folder = ""
+	select_pathways = False
+	pwy_select_filename = ""
+	pwys_selected = []
 
 	args = list(sys.argv)
 
@@ -189,6 +199,34 @@ if __name__ == "__main__":
 		print('Printing usage information.')
 		printUsage()
 		quit()
+
+	if '--select-pathways' in args:
+		select_file_idx = args.index('--select-pathways') + 1
+		pwy_select_filename = args[select_file_idx]
+		args.remove('--select-pathways')
+		args.remove(pwy_select_filename)
+
+		try:
+			with open(pwy_select_filename, 'r') as pwy_sel_file:
+				sel_reader = csv.reader(pwy_sel_file, delimiter=',')
+
+				first_row = True
+
+				for row in sel_reader:
+					if first_row == True:
+						first_row = False
+						continue
+
+					pwys_selected.append(row[0])
+
+				print('Looking at ' + str(len(pwys_selected)) + ' pathways total.')
+
+
+		except Exception as e:
+			print("Error loading list of selected pathways - exiting.")
+			print("Exception: " + str(e))
+			quit()
+
 
 
 	if len(args) == 2: # Output file not specified
@@ -204,4 +242,4 @@ if __name__ == "__main__":
 		quit()
 
 
-	batchCorrelateAnnotate(target_folder, output_filename)
+	batchCorrelateAnnotate(target_folder, output_filename, selected_pathways=pwys_selected)
