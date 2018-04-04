@@ -14,13 +14,27 @@ from rpkm_correlate import loadPathwayInfoFromFile, loadORFDataFromFile, correla
 
 
 def loadAnnotationsFromFile(filename, sample_name, csv_separator):
-	anno_data=[sample_name, {}]
+	""" loadAnnotationsFromFile(): 	Loads ORF annotations from a specified file and returns the relevant fields for each ORF
+
+									Parameters:
+									- filename: name of the file to load annotations from
+									- sample_name: name of the sample these annotations are for (to properly format the IDs)
+									- csv_separator: column separator used in given file
+
+									Returns: a tuple - (name of sample, dict of tuples of annotation data indexed by ORF ID) """
+
+	anno_data=(sample_name, {})
 
 	try:
+		# Load the specified annotations file
 		with open(filename, 'r') as anno_file:
 			anno_reader = csv.reader(anno_file, delimiter=csv_separator)
 
+			# Process each row in the annotations file and store the relevant data
 			for row in anno_reader:
+				if row[0] == '#query': # Skip the header row
+					continue
+
 				anno_query = 'O_' + row[0].replace(sample_name,'')[1:] # Generate the proper corresponding ORF ID
 
 				# Only take the first annotation result from each ORF
@@ -35,8 +49,10 @@ def loadAnnotationsFromFile(filename, sample_name, csv_separator):
 				anno_identity = row[7] 	# 'identity' column
 				anno_ec = row[8] 		# 'ec' column
 
+				# Store the loaded data in the dict in anno_data, which is keyed by the ORF ID
 				anno_data[1][anno_query] = (anno_hit, anno_q_length, anno_bitscore, anno_bsr, anno_expect, anno_identity, anno_ec)
 
+	# If an error was encountered loading and processing the annotation file, exit and print the error
 	except Exception as e:
 		print("Error reading annotation file - exiting.")
 		print("Exception: " + str(e))
@@ -47,6 +63,19 @@ def loadAnnotationsFromFile(filename, sample_name, csv_separator):
 
 
 def batchCorrelateAnnotate(file_dir, output_filename = 'pwy_anno.tsv', csv_separator='\t', pwy_file_suffix='.pwy.txt', data_file_suffix='.orf_rpkm.txt', anno_file_suffix='.metacyc-2016-10-31.lastout.parsed.txt', selected_pathways=[]):
+	""" batchCorrelateAnnotate() : 	Load pathway information, RPKM data, and annotation data from separate files in a given directory, and produce an output file showing the relevant annotations and RPKM value
+									for each ORF in each pathway in each sample in the loaded files.
+
+									Parameters:
+									- file_dir: the path to the directory in which all of the relevant files are stored
+									- output_filename: the name of the file to store the output of this function in
+									- csv_separator: column separator used in input files and output file
+									- pwy_file_suffix: suffix for files containing pathway information
+									- data_file_suffix: suffix for files containing RPKM data
+									- anno_file_suffix: suffix for files containing annotation data
+									- selected_pathways: list of strings of pathway short names, specifiying which pathways should be included in the output file
+
+									Returns: nothing - outputs results to specified file."""
 
 	# Create a list of all files in the target directory
 	all_files = [join(file_dir, f) for f in listdir(file_dir)]
@@ -89,7 +118,10 @@ def batchCorrelateAnnotate(file_dir, output_filename = 'pwy_anno.tsv', csv_separ
 			print("Missing data file: " + corresponding_data_file)
 
 
+	# Produce the output data for this function
 	output_data = []
+
+	# Keep track of the total number of pathway/sample pairs, RPKM data points, and annotations loaded
 	n_total_pathways = 0
 	n_total_datapoints = 0
 	n_total_annotations = 0
@@ -102,26 +134,39 @@ def batchCorrelateAnnotate(file_dir, output_filename = 'pwy_anno.tsv', csv_separ
 		# Load RPKM data from the file corresponding to the pathway info file
 		rpkm_data = loadORFDataFromFile(data_file, cur_sample, csv_separator)
 
+		# Load annotation data from the corresponding file
 		anno_data = loadAnnotationsFromFile(anno_file, cur_sample, csv_separator)
 
+		# Create a dict from the RPKM data, indexed by ORF ID, for easier searching
 		data_dict = dict(rpkm_data[1])
 
+		# Keep track of the number of missing annotations and RPKM data points, for troubleshooting.
 		n_missing_annotations = 0
 		n_missing_rpkm = 0
 
+		# Iterate through each pathway
 		for pwy, pwy_cname, pwy_orfs in pathway_info[1]:
+
+			# If a list of selected pathways is selected and this pathway is not in that list, skip it.
 			if len(selected_pathways) > 0 and pwy not in selected_pathways:
 				continue
 
 			n_total_pathways += 1
+
+			# Iterate through each ORF in this pathway
 			for orf in pwy_orfs:
+
+				# If the ORF is present in the RPKM data loaded for this sample, continue processing this ORF
 				if orf in data_dict:
 					n_total_datapoints += 1
+
+					# If the annotation data is present for this ORF, add a new row for this ORF/pathway/sample pair to the output data
 					if orf in anno_data[1]:
 						n_total_annotations += 1
-						orf_anno = anno_data[1][orf]
 
+						orf_anno = anno_data[1][orf] # Acquire the annotation data for this specific ORF
 
+						# Add a new row to the output data
 						output_data.append((cur_sample, # SAMPLE
 							pwy,			# PWY_NAME
 							orf,			# ORF
@@ -135,10 +180,10 @@ def batchCorrelateAnnotate(file_dir, output_filename = 'pwy_anno.tsv', csv_separ
 							orf_anno[6]))	# EC
 
 
-					else:
+					else: # Keep track of missing annotations
 						n_missing_annotations += 1
 
-				else:
+				else: # Keep track of missing RPKM data points
 					n_missing_rpkm += 1
 
 		print('Loaded sample: ' + cur_sample + ' - ORFS with no annotations: ' + str(n_missing_annotations) + ' - missing rpkm data points: ' + str(n_missing_rpkm))
@@ -152,7 +197,6 @@ def batchCorrelateAnnotate(file_dir, output_filename = 'pwy_anno.tsv', csv_separ
 	output_file_header = ['SAMPLE', 'PWY_NAME', 'ORF', 'HIT', 'RPKM', 'Q_LENGTH', 'BITSCORE', 'BSR', 'EXPECT', 'IDENTITY', 'EC']
 
 
-
 	# Output the resulting data to the chosen file
 	try:
 		with open(output_filename, 'w') as output_file:
@@ -161,6 +205,7 @@ def batchCorrelateAnnotate(file_dir, output_filename = 'pwy_anno.tsv', csv_separ
 			# Write the header to the output file as the first line.
 			output_writer.writerow(output_file_header)
 
+			# Write out each row
 			for row in output_data:
 				output_writer.writerow(row)
 
@@ -169,10 +214,6 @@ def batchCorrelateAnnotate(file_dir, output_filename = 'pwy_anno.tsv', csv_separ
 		print("ERORR: File output failed - exiting.")
 		print("Exception: " + str(e))
 		quit()
-
-
-	
-
 
 
 
@@ -188,6 +229,7 @@ if __name__ == "__main__":
 
 
 	target_folder = ""
+
 	select_pathways = False
 	pwy_select_filename = ""
 	pwys_selected = []
@@ -200,33 +242,43 @@ if __name__ == "__main__":
 		printUsage()
 		quit()
 
+	# If --select-pathways <file> is specified, load the list of pathways to process from the specified file
 	if '--select-pathways' in args:
+		# Acquire the specified file name from the command-line arguments
 		select_file_idx = args.index('--select-pathways') + 1
 		pwy_select_filename = args[select_file_idx]
 		args.remove('--select-pathways')
 		args.remove(pwy_select_filename)
 
+		# Read the names of pathways from the specified file
+		# Currently, the format of the specified file is hardcoded, and must be as such:
+		# - comma-separated
+		# - the first row is a header
+		# - the first column is the short-names of each pathway to look at
 		try:
 			with open(pwy_select_filename, 'r') as pwy_sel_file:
 				sel_reader = csv.reader(pwy_sel_file, delimiter=',')
 
+				# Keep track of whether the first row is currently being read, so the header can be ignored
 				first_row = True
 
 				for row in sel_reader:
+
+					# Ignore the header row
 					if first_row == True:
 						first_row = False
 						continue
 
+					# Append the short-name of the pathway on the current row to the list of pathways to look at
 					pwys_selected.append(row[0])
 
 				print('Looking at ' + str(len(pwys_selected)) + ' pathways total.')
 
-
+		# If an error occurred loading/parsing this file, output the error to the command line and exit. 
 		except Exception as e:
 			print("Error loading list of selected pathways - exiting.")
 			print("Exception: " + str(e))
 			quit()
-
 
 
 	if len(args) == 2: # Output file not specified
