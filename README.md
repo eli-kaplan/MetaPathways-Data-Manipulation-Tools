@@ -1,5 +1,5 @@
-# Pathway RPKM Correlation Script / Library
-- Takes metabolic pathway information and Open Reading Frame (ORF) Reads Per Kilobase Million (RPKM) data from separate files, correlates RPKM data points with their respective pathways, and manipulates / outputs this data.
+# MetaPathways Pathway Information / Data Manipulation Toolset
+A set of Python libraries (each also functioning as a command-line script) for working with MetaPathways pathway information, ORF RPKM data, and ORF annotation files.
 
 
 # Usage
@@ -55,21 +55,54 @@ This will perform the same actions as the default usage of the script. There are
 - ``` excl_zeroes``` determines whether zero-values are excluded from the average calculations.
 - ```separate_stats``` determines whether per-sample statistics are placed in the main output file, or a separate file. Defaults to `True` (separate file).
 
+## rpkm_annotate
+### As a Script
+```
+python rpkm_annotate.py (folder containing pathway info, RPKM data, and annotations) [output file] [--select-pathways <file>]
+```
+Running this script takes a folder containing per-sample pathway information files, ORF RPKM data point files, and associated annotation files, and outputs a file containing per-sample per-pathway per-ORF annotation information. If the output file is not specified, this output data will by default be written to `pwy_anno.tsv`.
+
+Two command-line options can be specified to this script:
+- `--help` prints usage information to the console.
+- `--select-pathways <file>` specifies a file to load a list of pathways from. The script will then only cross-reference and output ORF/annotation/etc. data for pathways specified within this file. This file should be formatted as comma-separated values, with the first line being a header, and the first column being the short-name of each pathway to be looked at.
+
+### As a Python Library
+```
+from rpkm_annotate import batchCorrelateAnnotate
+
+batchCorrelateAnnotate("input_directory/", output_filename="pwy_anno.tsv", selected_pathways=['PWY-4206', 'PWY-8822'])
+```
+This example usage will take input files from `input_directory`, match annotation data to each ORF for the specified pathways `PWY-4206` and `PWY-8822` in each sample in the input directory, and output the results to `pwy_anno.tsv`. There are a few extra options that can be specified for the `batchCorrelateAnnotate` function - see the code for more information. 
+
+Additionally, this library contains another function, `loadAnnotationsFromFile()`, which loads ORF annotation information from a specified file. See code for usage information.
+
 ## File Format 
 The input files should be formatted as TSV/CSV files, with the following requirements:
-- The pathway information file should have the suffix `.pwy.txt`, have at least 4 columns, with a header on the first line: 
+- Pathway information files should have the suffix `.pwy.txt`, and have at least 4 columns, with a header on the first line: 
 	- ```SAMPLE``` (name of the sample, e.g. ```MaxBin27```)
 	- ```PWY_NAME``` (short-name for the pathway, e.g. ```PWY-4416```)
 	- ```PWY_COMMON_NAME``` (common-name for the pathway, e.g. ```CMP phosphorylation```)
 	- ```ORFS``` (list of frame IDs, e.g. ```[O_7_7,O_164_9]```)
 
 
-- The RPKM data files should have the prefix `.orf_rpkm.txt`, and should have two columns, with no header:
+- The RPKM data files should have the suffix `.orf_rpkm.txt`, and should have two columns, with no header:
 	- The first column should be the ORF ID, formatted as ```[Sample Name]_###_##```
 		- For example, if the sample name is ```MaxBin_22```, and the frame ID is ```O_145_2```, the resulting ID would be ```MaxBin22_145_2```
 	- The second column should be the RPKM data point, formatted as a ```float``` (e.g. ```1.9415```)
+	
+- ORF annotation files should have the suffix `.metacyc-2016-10-31.lastout.parsed.txt` (when `rpkm_annotate` is run as a script - this can be changed by calling its main function manually), should have one header row, and the following ten columns in the following order:
+	- `#query`
+	- `target`
+	- `q_length`
+	- `bitscore`
+	- `bsr`
+	- `expect`
+	- `aln_length`
+	- `identity`
+	- `ec`
+	- `product`
 
-For `rpkm_correlate_batch` to function correctly, the name for each file in each pathway info / data file pair must match except for the prefix. If the pathway information file is named `maxbin_44.pwy.txt`, the data file must be named `maxbin_44.orf_rpkm.txt` - this is case-sensitive!
+For `rpkm_correlate_batch` and `rpkm_annotate` to function correctly, the name for each file in each pathway info, data, and annotation (for `rpkm_annotate` only) file pair must match except for the suffix. If the pathway information file is named `maxbin_44.pwy.txt`, the data file must be named `maxbin_44.orf_rpkm.txt` - this is case-sensitive!
 
 
 # License

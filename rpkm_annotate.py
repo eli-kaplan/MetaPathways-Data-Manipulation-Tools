@@ -224,8 +224,10 @@ if __name__ == "__main__":
 		print('\nPathway/RPKM Batch Pathway/Data/Annotation Correlator')
 		print('Usage: ')
 		print('rpkm_annotate.py <folder containing pathway, data, and annotation files> [output filename] [--select-pathways <file>]')
-		print('--help displays this message.')
-		print('--select-pathways <pathway list file> specifies a file containing a list of pathways to output (ignoring other pathways)\n')
+		print('\nIf no output file is specified, defaults to pwy_anno.tsv\n')
+		print('The --help flag displays this message.')
+		print('Specifying --select-pathways <pathway list file> specifies a file containing a list of pathways to output (ignoring other pathways)')
+		print('\nSee README for further information.\n')
 
 
 	target_folder = ""
