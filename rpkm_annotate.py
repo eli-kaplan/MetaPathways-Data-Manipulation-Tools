@@ -180,8 +180,21 @@ def batchCorrelateAnnotate(file_dir, output_filename = 'pwy_anno.tsv', csv_separ
 							orf_anno[6]))	# EC
 
 
-					else: # Keep track of missing annotations
+					else: # If the ORF is missing annotation data, output it but indicate that there are no annotations (with zeroes in values etc.)
 						n_missing_annotations += 1
+
+						output_data.append((cur_sample,
+							pwy,
+							orf,
+							orf,
+							data_dict[orf],
+							0,
+							0,
+							0,
+							0,
+							0,
+							0))
+
 
 				else: # Keep track of missing RPKM data points
 					n_missing_rpkm += 1
