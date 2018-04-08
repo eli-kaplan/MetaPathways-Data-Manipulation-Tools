@@ -92,8 +92,8 @@ def batchCorrelateAnnotate(file_dir, output_filename = 'pwy_anno.tsv', csv_separ
 			data_files.append(file)
 		elif anno_file_suffix in file:
 			anno_files.append(file)
-		else:
-			print("Unknown file in batch directory: " + file)
+		#else:
+			#print("Unknown file in batch directory: " + file)
 
 
 	# Match each pathway information file with its corresponding RPKM data file and annotation file
@@ -236,10 +236,11 @@ if __name__ == "__main__":
 		"""Prints usage information for this script."""
 		print('\nPathway/RPKM Batch Pathway/Data/Annotation Correlator')
 		print('Usage: ')
-		print('rpkm_annotate.py <folder containing pathway, data, and annotation files> [output filename] [--select-pathways <file>]')
+		print('rpkm_annotate.py <folder containing pathway, data, and annotation files> [output filename] [--select-pathways <file>] [--anno-suffix <suffix>]')
 		print('\nIf no output file is specified, defaults to pwy_anno.tsv\n')
 		print('The --help flag displays this message.')
 		print('Specifying --select-pathways <pathway list file> specifies a file containing a list of pathways to output (ignoring other pathways)')
+		print('Specifying --anno-suffix <suffix> sets the filename suffix for the annotation files to be used, allowing for multiple sets of annotation files in the same folder.')
 		print('\nSee README for further information.\n')
 
 
@@ -248,6 +249,7 @@ if __name__ == "__main__":
 	select_pathways = False
 	pwy_select_filename = ""
 	pwys_selected = []
+	anno_suffix = '.metacyc-2016-10-31.lastout.parsed.txt'
 
 	args = list(sys.argv)
 
@@ -256,6 +258,15 @@ if __name__ == "__main__":
 		print('Printing usage information.')
 		printUsage()
 		quit()
+
+	# If --anno-suffix <suffix> is selected, use that as the filename suffix for annotation files
+	if '--anno-suffix' in args:
+		# Acquire the suffix from the command line arguments
+		anno_suffix_idx = args.index('--anno-suffix') + 1
+		anno_suffix = args[anno_suffix_idx]
+		args.remove(anno_suffix)
+		args.remove('--anno-suffix')
+
 
 	# If --select-pathways <file> is specified, load the list of pathways to process from the specified file
 	if '--select-pathways' in args:
@@ -309,4 +320,4 @@ if __name__ == "__main__":
 		quit()
 
 
-	batchCorrelateAnnotate(target_folder, output_filename, selected_pathways=pwys_selected)
+	batchCorrelateAnnotate(target_folder, output_filename, selected_pathways=pwys_selected, anno_file_suffix=anno_suffix)
