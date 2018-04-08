@@ -13,7 +13,7 @@ from os.path import join
 from rpkm_correlate import loadPathwayInfoFromFile, loadORFDataFromFile, correlatePathwayInfoWithData
 
 
-def loadAnnotationsFromFile(filename, sample_name, csv_separator):
+def loadAnnotationsFromFile(filename, sample_name, csv_separator, id_contains_sample=True):
 	""" loadAnnotationsFromFile(): 	Loads ORF annotations from a specified file and returns the relevant fields for each ORF
 
 									Parameters:
@@ -35,7 +35,11 @@ def loadAnnotationsFromFile(filename, sample_name, csv_separator):
 				if row[0] == '#query': # Skip the header row
 					continue
 
-				anno_query = 'O_' + row[0].replace(sample_name,'')[1:] # Generate the proper corresponding ORF ID
+				 # Generate the proper corresponding ORF ID
+				if id_contains_sample == True:
+					anno_query = 'O_' + row[0].replace(sample_name,'')[1:]
+				else:
+					anno_query = 'O_' + row[0]
 
 				# Only take the first annotation result from each ORF
 				if anno_query in anno_data[1]:
@@ -62,7 +66,7 @@ def loadAnnotationsFromFile(filename, sample_name, csv_separator):
 	return anno_data
 
 
-def batchCorrelateAnnotate(file_dir, output_filename = 'pwy_anno.tsv', csv_separator='\t', pwy_file_suffix='.pwy.txt', data_file_suffix='.orf_rpkm.txt', anno_file_suffix='.metacyc-2016-10-31.lastout.parsed.txt', selected_pathways=[]):
+def batchCorrelateAnnotate(file_dir, output_filename = 'pwy_anno.tsv', csv_separator='\t', pwy_file_suffix='.pwy.txt', data_file_suffix='.orf_rpkm.txt', anno_file_suffix='.metacyc-2016-10-31.lastout.parsed.txt', selected_pathways=[], anno_ids_contain_sample=True):
 	""" batchCorrelateAnnotate() : 	Load pathway information, RPKM data, and annotation data from separate files in a given directory, and produce an output file showing the relevant annotations and RPKM value
 									for each ORF in each pathway in each sample in the loaded files.
 
@@ -135,7 +139,7 @@ def batchCorrelateAnnotate(file_dir, output_filename = 'pwy_anno.tsv', csv_separ
 		rpkm_data = loadORFDataFromFile(data_file, cur_sample, csv_separator)
 
 		# Load annotation data from the corresponding file
-		anno_data = loadAnnotationsFromFile(anno_file, cur_sample, csv_separator)
+		anno_data = loadAnnotationsFromFile(anno_file, cur_sample, csv_separator, id_contains_sample=anno_ids_contain_sample)
 
 		# Create a dict from the RPKM data, indexed by ORF ID, for easier searching
 		data_dict = dict(rpkm_data[1])
@@ -236,11 +240,12 @@ if __name__ == "__main__":
 		"""Prints usage information for this script."""
 		print('\nPathway/RPKM Batch Pathway/Data/Annotation Correlator')
 		print('Usage: ')
-		print('rpkm_annotate.py <folder containing pathway, data, and annotation files> [output filename] [--select-pathways <file>] [--anno-suffix <suffix>]')
+		print('rpkm_annotate.py <folder containing pathway, data, and annotation files> [output filename] [--select-pathways <file>] [--anno-suffix <suffix>] [--anno-id-no-samplename]')
 		print('\nIf no output file is specified, defaults to pwy_anno.tsv\n')
 		print('The --help flag displays this message.')
 		print('Specifying --select-pathways <pathway list file> specifies a file containing a list of pathways to output (ignoring other pathways)')
 		print('Specifying --anno-suffix <suffix> sets the filename suffix for the annotation files to be used, allowing for multiple sets of annotation files in the same folder.')
+		print('Specify --anno-id-no-samplename when the IDs for each annotation do not contain the sample name, only ##_#')
 		print('\nSee README for further information.\n')
 
 
@@ -250,6 +255,7 @@ if __name__ == "__main__":
 	pwy_select_filename = ""
 	pwys_selected = []
 	anno_suffix = '.metacyc-2016-10-31.lastout.parsed.txt'
+	sample_in_anno_id = True
 
 	args = list(sys.argv)
 
@@ -266,6 +272,10 @@ if __name__ == "__main__":
 		anno_suffix = args[anno_suffix_idx]
 		args.remove(anno_suffix)
 		args.remove('--anno-suffix')
+
+	if '--anno-id-no-samplename' in args:
+		sample_in_anno_id = False
+		args.remove('--anno-id-no-samplename')
 
 
 	# If --select-pathways <file> is specified, load the list of pathways to process from the specified file
@@ -320,4 +330,4 @@ if __name__ == "__main__":
 		quit()
 
 
-	batchCorrelateAnnotate(target_folder, output_filename, selected_pathways=pwys_selected, anno_file_suffix=anno_suffix)
+	batchCorrelateAnnotate(target_folder, output_filename, selected_pathways=pwys_selected, anno_file_suffix=anno_suffix, anno_ids_contain_sample=sample_in_anno_id)
