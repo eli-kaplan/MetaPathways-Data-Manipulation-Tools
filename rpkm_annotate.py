@@ -273,6 +273,7 @@ if __name__ == "__main__":
 		args.remove(anno_suffix)
 		args.remove('--anno-suffix')
 
+	# If --anno-id-no-samplename is specified, pass that flag batchCorrelateAnnotate()
 	if '--anno-id-no-samplename' in args:
 		sample_in_anno_id = False
 		args.remove('--anno-id-no-samplename')
