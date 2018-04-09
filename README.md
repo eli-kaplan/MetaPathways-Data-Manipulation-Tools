@@ -58,7 +58,7 @@ This will perform the same actions as the default usage of the script. There are
 ## rpkm_annotate
 ### As a Script
 ```
-python rpkm_annotate.py (folder containing pathway info, RPKM data, and annotations) [output file] [--select-pathways <file>] [--anno-suffix <suffix>] [--anno-id-no-samplename]
+python rpkm_annotate.py (folder containing pathway info, RPKM data, and annotations) [output file] [--select-pathways <file>] [--anno-suffix <suffix>]
 ```
 Running this script takes a folder containing per-sample pathway information files, ORF RPKM data point files, and associated annotation files, and outputs a file containing per-sample per-pathway per-ORF annotation information. If the output file is not specified, this output data will by default be written to `pwy_anno.tsv`.
 
@@ -66,7 +66,6 @@ Four command-line options can be specified to this script:
 - `--help` prints usage information to the console.
 - `--select-pathways <file>` specifies a file to load a list of pathways from. The script will then only cross-reference and output ORF/annotation/etc. data for pathways specified within this file. This file should be formatted as comma-separated values, with the first line being a header, and the first column being the short-name of each pathway to be looked at.
 - `--anno-suffix <suffix>` specifies the suffix for annotation files to be loaded (i.e. '.metacyc-2016-10-31.lastout.parsed.txt')
-- `--anno-id-no-samplename` specifies that in the annotation file, ORF IDs don't have the sample name at the start, instead only containing the ORF ID number
 
 ### As a Python Library
 ```
