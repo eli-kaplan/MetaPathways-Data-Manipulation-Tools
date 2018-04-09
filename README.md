@@ -62,7 +62,7 @@ python rpkm_annotate.py (folder containing pathway info, RPKM data, and annotati
 ```
 Running this script takes a folder containing per-sample pathway information files, ORF RPKM data point files, and associated annotation files, and outputs a file containing per-sample per-pathway per-ORF annotation information. If the output file is not specified, this output data will by default be written to `pwy_anno.tsv`.
 
-Four command-line options can be specified to this script:
+Three command-line options can be specified to this script:
 - `--help` prints usage information to the console.
 - `--select-pathways <file>` specifies a file to load a list of pathways from. The script will then only cross-reference and output ORF/annotation/etc. data for pathways specified within this file. This file should be formatted as comma-separated values, with the first line being a header, and the first column being the short-name of each pathway to be looked at.
 - `--anno-suffix <suffix>` specifies the suffix for annotation files to be loaded (i.e. '.metacyc-2016-10-31.lastout.parsed.txt')
